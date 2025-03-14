@@ -9,6 +9,7 @@ import com.openlap.dataset.OpenLAPPortMapping;
 import com.openlap.exceptions.DataSetValidationException;
 import com.openlap.exceptions.UnTransformableData;
 import com.openlap.exceptions.VisualizationCodeGenerationException;
+import com.openlap.template.model.ChartConfiguration;
 import com.openlap.template.model.TransformedData;
 
 import java.util.Map;
@@ -26,6 +27,8 @@ public abstract class VisualizationCodeGenerator {
     private OpenLAPDataSet output;
 
     public abstract String getName();
+
+    public abstract ChartConfiguration getConfiguration();
 
     public abstract void initializeDataSetConfiguration();
 
