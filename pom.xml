@@ -19,9 +19,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.rahimseyidovduisburg</groupId>
-            <artifactId>open-lap-data-exchange-formats-master</artifactId>
-            <version>version1</version>
+            <groupId>com.github.ude-soco</groupId>
+            <artifactId>openlap-official-data-exchange-formats</artifactId>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
     <build>
