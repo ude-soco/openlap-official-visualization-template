@@ -5,6 +5,15 @@
 The following video gives the introduction to the OpenLAP followed by the tutorial to add new visualization technique to
 the OpenLAP.
 
+## Stabilization Notes
+
+TODO: The examples in this README should be refreshed in a later documentation phase. This project currently targets
+Java 8, so examples should avoid `var` and should not rely on `javafx.util.Pair` unless that dependency is explicitly
+provided by the consuming project.
+
+Security TODO: generated HTML and JavaScript must escape user-controlled labels, values, and additional parameters.
+Escaping is intentionally not changed in this stabilization phase because it can affect existing output behavior.
+
 <p align="center">
 	<a href="http://www.youtube.com/watch?feature=player_embedded&v=e6dwtO0mneo" target="_blank">
 		<span><strong>Video Tutorial to add new Visualization techniques to the OpenLAP</strong></span>

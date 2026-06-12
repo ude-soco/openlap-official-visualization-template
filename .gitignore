@@ -12,3 +12,7 @@
 /bin/
 
 *.class
+mvnw.cmd
+.gitignore
+.mvn/
+mvnw
