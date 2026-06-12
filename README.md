@@ -7,15 +7,13 @@ the OpenLAP.
 
 ## Stabilization Notes
 
-TODO: The examples in this README should be refreshed in a later documentation phase. This project currently targets
-Java 8, so examples should avoid `var` and should not rely on `javafx.util.Pair` unless that dependency is explicitly
-provided by the consuming project.
+The examples in this README target Java 8 and use explicit Java types with small domain classes.
 
-Security TODO: generated HTML and JavaScript must escape user-controlled labels, values, and additional parameters.
-Escaping is intentionally not changed in this stabilization phase because it can affect existing output behavior.
+Generated HTML and JavaScript must escape user-controlled labels, values, and additional parameters. See
+the Safe HTML/JS generation section before concatenating transformed data into generated snippets.
 
 <p align="center">
-	<a href="http://www.youtube.com/watch?feature=player_embedded&v=e6dwtO0mneo" target="_blank">
+	<a href="https://www.youtube.com/watch?feature=player_embedded&v=e6dwtO0mneo" target="_blank">
 		<span><strong>Video Tutorial to add new Visualization techniques to the OpenLAP</strong></span>
 		<br>
 		<img src="http://lanzarote.informatik.rwth-aachen.de/openlap/img/others/visualizer.png" width=480 alt="OpenLAP Introduction and New Visualizer"/>
@@ -30,15 +28,13 @@ concept, take a look at the example below which uses Google Charts API to genera
 
 ```javascript
 <!-- Visualization Library Script -->
-<script src="https://cdn.jsdelivr.net/npm
-/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm
-/apexcharts@3.45.1/dist/apexcharts.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.css" rel="stylesheet">
 
   <!-- Visualization Generation Script -->
   <div id='chartdiv'></div>
   <script>
-    var options = {
+    const options = {
     // Visualization data
     series: [{
     data: [400, 430, 448, 470, 540, 580, 690, 1100, 1200, 1380]
@@ -66,7 +62,7 @@ concept, take a look at the example below which uses Google Charts API to genera
   };
 
     //Visualization generation
-    var chart = new ApexCharts(document.querySelector("#chart"), options);
+    const chart = new ApexCharts(document.querySelector("#chart"), options);
     chart.render();
   </script>
 ```
@@ -104,19 +100,19 @@ used by the OpenLAP.
 
 #### Implemented Methods
 
-* The ` isDataProcessable()` method takes an `OLAPPortConfiguration` as parameter and validate if the `OpenLAPDataSet`
+* The ` isDataProcessable()` method takes an `OpenLAPPortConfig` as parameter and validate if the `OpenLAPDataSet`
   with the specified configuration can be processed or not.
 
-* The `generateVisualizationCode()` method takes an `OpenLAPDataSet`, an `OLAPPortConfiguration` and a `DataTransformer`
+* The `generateVisualizationCode()` method takes an `OpenLAPDataSet`, an `OpenLAPPortConfig` and a `DataTransformer`
   as parameters. The incoming `OpenLAPDataSet` is used as an input data which is transformed using the `DataTransformer`
-  if the `OLAPPortConfiguration` is valid. The transformed data is then processed using the `visualizationCode()` method
+  if the `OpenLAPPortConfig` is valid. The transformed data is then processed using the `visualizationCode()` method
   to produce the “Visualization Generation Script” (as discussed in the Fundamental Concepts section).
 
 * The `getVisualizationLibraryScript()` method returns the “Visualization Library Script” (as discussed in the
   Fundamental Concepts section) by calling the `visualizationLibraryScript()` method.
 
 * The `getInput()` method allow other classes to obtain the input `OpenLAPDataSet` which can be used to get the columns
-  metadata as `OLAPColumnConfigurationData` class.
+  metadata as `OpenLAPColumnConfigData` class.
 
 #### Abstract Methods
 
@@ -153,6 +149,19 @@ data structure which can be used to generate “Visualization Generation Script�
 class. So the important point here is that the input `OpenLAPDataSet` is defined in the `VisualizationCodeGenerator`
 class but it is not used there. It is used in the `DataTransformer` and the transformed data from this interface class
 is then used in the `VisualizationCodeGenerator`.
+
+## Safe HTML/JS generation
+
+Visualization methods return raw HTML and JavaScript snippets, so treat dataset labels, transformed values, and
+additional parameters as untrusted whenever they are concatenated into generated code.
+
+Use `VisualizationEscaper.escapeHtmlText(value)` when writing user-controlled text between HTML tags.
+Use `VisualizationEscaper.escapeHtmlAttribute(value)` when writing user-controlled text inside an HTML attribute.
+Use `VisualizationEscaper.escapeJavaScriptString(value)` when writing user-controlled text inside a JavaScript string
+literal.
+
+The helpers return an empty string for `null`. They do not validate JavaScript numbers, booleans, identifiers, URLs, or
+whole expressions; parse or allow-list those values before concatenating them into generated code.
 
 ## Step by step guide to implement a new Visualization Method
 
@@ -246,7 +255,7 @@ package openlap.visualizer.Charts;
 
 import com.openlap.template.VisualizationCodeGenerator;
 
-public class BarChart extends VisualizationCodeGenerator {
+public abstract class BarChart extends VisualizationCodeGenerator {
 
 }
 ```
@@ -285,7 +294,7 @@ type *numeric*. Therefore, we have here an input OpenLAPDataSet with two columns
 one column of type *numeric*.
 
 ```java
-// Declaration of input OpenLAPDataSet by adding OLAPDataColum objects with the OpenLAPDataColumnFactory
+// Declaration of input OpenLAPDataSet by adding OpenLAPDataColumn objects with the OpenLAPDataColumnFactory
 @Override
 public void initializeDataSetConfiguration() {
 	this.setInput(new OpenLAPDataSet());
@@ -309,8 +318,8 @@ public void initializeDataSetConfiguration() {
 								true,
 								"Y-Axis",
 								"List of items to be displayed on Y-Axis of the graph"));
-	} catch (OpenLAPDataColumnException var2) {
-		var2.printStackTrace();
+	} catch (OpenLAPDataColumnException exception) {
+		throw new IllegalStateException("Could not initialize BarChart input columns", exception);
 	}
 }
 ```
@@ -326,7 +335,7 @@ package openlap.visualizer;
 
 import com.openlap.template.DataTransformer;
 
-public class PairList implements DataTransformer {
+public class BarChartDataTransformer implements DataTransformer {
 }
 ```
 
@@ -334,8 +343,8 @@ public class PairList implements DataTransformer {
 
 The DataTransformer interface necessitates the implementation of only one method. The provided example offers a
 demonstration of a data transformer. Specifically, this data transformer takes the input OpenLAPDataSet defined in the
-*initializeDataSetConfiguration* method of the class *BarChart* and converts it into a list of string and integer pairs
-*List<Pair<String, Integer>>*. The result is returned as an object of the TransformedData class.
+*initializeDataSetConfiguration* method of the class *BarChart* and converts it into a list of chart points. The result
+is returned as an object of the TransformedData class.
 
 ```java
 package openlap.visualizer;
@@ -348,28 +357,25 @@ import com.openlap.template.DataTransformer;
 import com.openlap.template.model.TransformedData;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import javafx.util.Pair;
+public class BarChartDataTransformer implements DataTransformer {
+	TransformedData<List<ChartPoint>> transformedData = new TransformedData<List<ChartPoint>>();
 
-public class PairList implements DataTransformer {
-	TransformedData<List<Pair<String, Float>>> transformedData = new TransformedData();
-
-	public TransformedData<List<Pair<String, Float>>> getTransformedData() {
+	public TransformedData<List<ChartPoint>> getTransformedData() {
 		return this.transformedData;
 	}
 
 	public TransformedData<?> transformData(OpenLAPDataSet openLAPDataSet) throws UnTransformableData {
 
-		this.transformedData.setData(new ArrayList());
+		this.transformedData.setData(new ArrayList<ChartPoint>());
 
 		List<OpenLAPDataColumn> columns = openLAPDataSet.getColumnsAsList(true);
 
-		List<String> textualLabels = null;
-		List<Float> numericValues = null;
+		List<?> textualLabels = null;
+		List<?> numericValues = null;
 
-		for (var column : columns) {
+		for (OpenLAPDataColumn column : columns) {
 			if (column.getConfigurationData()
 					.getType()
 					.equals(OpenLAPColumnDataType.Numeric))
@@ -384,15 +390,32 @@ public class PairList implements DataTransformer {
 
 			for (int i = 0; i < textualLabels.size(); ++i) {
 
-				// add the data to transformerData as a pair of string and float values
-				((List) this.transformedData.getData())
-						.add(new Pair((String) textualLabels.get(i),
-								Float.parseFloat(String
-										.valueOf(numericValues.get(i)))));
+				this.transformedData.getData()
+						.add(new ChartPoint(
+								String.valueOf(textualLabels.get(i)),
+								Float.parseFloat(String.valueOf(numericValues.get(i)))));
 			}
 		}
 
 		return this.transformedData;
+	}
+
+	public static class ChartPoint {
+		private final String label;
+		private final Float value;
+
+		public ChartPoint(String label, Float value) {
+			this.label = label;
+			this.value = value;
+		}
+
+		public String getLabel() {
+			return label;
+		}
+
+		public Float getValue() {
+			return value;
+		}
 	}
 }
 ```
@@ -415,16 +438,17 @@ import com.openlap.dataset.OpenLAPDataSet;
 import com.openlap.exceptions.OpenLAPDataColumnException;
 import com.openlap.exceptions.VisualizationCodeGenerationException;
 import com.openlap.template.DataTransformer;
+import com.openlap.template.VisualizationEscaper;
+import com.openlap.template.model.ChartConfiguration;
 
 import java.util.List;
 import java.util.Map;
 
-import openlap.visualizer.PairList;
-import javafx.util.Pair;
+import openlap.visualizer.BarChartDataTransformer;
 
 public class BarChart extends VisualizationCodeGenerator {
 
-	// Declaration of input OpenLAPDataSet by adding OLAPDataColum objects with the OpenLAPDataColumnFactory
+	// Declaration of input OpenLAPDataSet by adding OpenLAPDataColumn objects with the OpenLAPDataColumnFactory
 	@Override
 	public void initializeDataSetConfiguration() {
 		this.setInput(new OpenLAPDataSet());
@@ -448,9 +472,18 @@ public class BarChart extends VisualizationCodeGenerator {
 									true,
 									"Y-Axis",
 									"List of items to be displayed on Y-Axis of the graph"));
-		} catch (OpenLAPDataColumnException var2) {
-			var2.printStackTrace();
+		} catch (OpenLAPDataColumnException exception) {
+			throw new IllegalStateException("Could not initialize BarChart input columns", exception);
 		}
+	}
+
+	@Override
+	public ChartConfiguration getConfiguration() {
+		return new ChartConfiguration(
+				false, false, false, false, false, false, false,
+				false, false, false, false, false, false, false,
+				false, false, false, false, false, false, false,
+				false, false, false, false, false, false, false);
 	}
 
 
@@ -462,28 +495,26 @@ public class BarChart extends VisualizationCodeGenerator {
 	@Override
 	public String visualizationLibraryScript() {
 		return
-				"<link href=\"https://cdn.jsdelivr.net/npm" +
-						"/apexcharts@3.45.1/dist/apexcharts.min.css\" rel=\"stylesheet\"" +
-						"<script " +
-						"src=\"https://cdn.jsdelivr.net/npm" +
-						"/apexcharts@3.45.1/dist/apexcharts.min.js\">" +
+				"<link href=\"https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.css\" rel=\"stylesheet\">" +
+						"<script src=\"https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js\">" +
 						"</script>";
 	}
 
 	@Override
 	public Class getDataTransformer() {
-		return PairList.class;
+		return BarChartDataTransformer.class;
 	}
 
 	@Override
 	public String visualizationCode(DataTransformer dataTransformer, Map<String, Object> map) throws VisualizationCodeGenerationException {
-		PairList dataInput = (PairList) dataTransformer;
+		BarChartDataTransformer dataInput = (BarChartDataTransformer) dataTransformer;
 
-		List<Pair<String, Float>> transformedDataInput = (List) dataInput.getTransformedData().getData();
+		List<BarChartDataTransformer.ChartPoint> transformedDataInput = dataInput.getTransformedData().getData();
 
 		String width = map.containsKey("width") ? map.get("width").toString() : "500";
 		String height = map.containsKey("height") ? map.get("height").toString() : "350";
 		String yLabel = map.containsKey("yLabel") ? map.get("yLabel").toString() : "Value";
+		String escapedYLabel = VisualizationEscaper.escapeJavaScriptString(yLabel);
 
 		String apexChartBuildingText;
 
@@ -494,7 +525,9 @@ public class BarChart extends VisualizationCodeGenerator {
 
 			dataAxisX.append(transformedDataInput.get(i).getValue());
 
-			dataAxisY.append("'" + transformedDataInput.get(i).getKey() + "'");
+			dataAxisY.append("'")
+					.append(VisualizationEscaper.escapeJavaScriptString(transformedDataInput.get(i).getLabel()))
+					.append("'");
 
 			if (i != transformedDataInput.size() - 1) {
 				dataAxisX.append(", ");
@@ -504,16 +537,20 @@ public class BarChart extends VisualizationCodeGenerator {
 
 		apexChartBuildingText = "<div id=\"chart\"></div>" +
 				"<script> " +
-				"var options = {chart: {type: 'bar', height: " + height + ", width: " + width + "}," +
-				"series: [{name: '" + yLabel + "',data: [" + dataAxisX + "]}]," +
+				"const options = {chart: {type: 'bar', height: " + height + ", width: " + width + "}," +
+				"series: [{name: '" + escapedYLabel + "',data: [" + dataAxisX + "]}]," +
 				"xaxis: {categories: [" + dataAxisY + "]} };" +
-				"var chart = new ApexCharts(document.querySelector(\"#chart\"), options);" +
+				"const chart = new ApexCharts(document.querySelector(\"#chart\"), options);" +
 				"chart.render();</script>";
 
 		return apexChartBuildingText;
 	}
 }
 ```
+
+The example escapes string values before placing them into JavaScript string literals. Values such as `width` and
+`height` are JavaScript numeric fragments; validate or parse them as numbers before concatenating them in production
+visualization code.
 
 #### Step 8. Pack the project into a fat jar file
 

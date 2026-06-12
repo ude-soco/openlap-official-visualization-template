@@ -12,6 +12,7 @@ import com.openlap.exceptions.VisualizationCodeGenerationException;
 import com.openlap.template.model.ChartConfiguration;
 import com.openlap.template.model.TransformedData;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 /**
@@ -61,7 +62,7 @@ public abstract class VisualizationCodeGenerator {
                 input.getColumns().get(mappingEntry.getInputPort().getId()).setData(openLAPDataSet.getColumns().get(mappingEntry.getOutputPort().getId()).getData());
             }
 
-            DataTransformer dataTransformer = (DataTransformer) getDataTransformer().newInstance();
+            DataTransformer dataTransformer = createDataTransformer();
 
             TransformedData<?> transformedData = dataTransformer.transformData(input);
             if (transformedData == null)
@@ -75,6 +76,34 @@ public abstract class VisualizationCodeGenerator {
 
     public String getVisualizationLibraryScript() {
         return visualizationLibraryScript();
+    }
+
+    @SuppressWarnings("unchecked")
+    private DataTransformer createDataTransformer() throws IllegalAccessException, InstantiationException {
+        try {
+            Class<?> dataTransformerClass = getDataTransformer();
+            return dataTransformerClass
+                    .asSubclass(DataTransformer.class)
+                    .getDeclaredConstructor()
+                    .newInstance();
+        } catch (NoSuchMethodException exception) {
+            InstantiationException instantiationException =
+                    new InstantiationException("DataTransformer requires a no-argument constructor.");
+            instantiationException.initCause(exception);
+            throw instantiationException;
+        } catch (InvocationTargetException exception) {
+            Throwable cause = exception.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            if (cause instanceof Error) {
+                throw (Error) cause;
+            }
+            InstantiationException instantiationException =
+                    new InstantiationException("DataTransformer constructor failed.");
+            instantiationException.initCause(cause);
+            throw instantiationException;
+        }
     }
 
     public OpenLAPDataSet getInput() {
