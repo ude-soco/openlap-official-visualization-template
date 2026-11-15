@@ -1,0 +1,9 @@
+.openlap-svg-chart { width: 100%; color: #263238; background: white; }
+.openlap-svg-chart svg { display: block; width: 100%; height: auto; font-family: system-ui, sans-serif; font-size: 14px; }
+.openlap-svg-chart .chart-title { font-size: 20px; font-weight: 600; }
+.openlap-svg-chart .chart-grid { stroke: #e0e5e8; stroke-width: 1; }
+.openlap-svg-chart .chart-axis { stroke: #607d8b; stroke-width: 1; }
+.openlap-svg-chart .axis-label { fill: #546e7a; font-size: 12px; }
+.openlap-svg-chart .value-label { fill: #263238; font-size: 12px; }
+.openlap-svg-chart .chart-mark { transition: opacity 100ms; }
+.openlap-svg-chart .chart-mark:hover, .openlap-svg-chart .chart-mark:focus { opacity: 0.65; outline: 2px solid #ef6c00; }

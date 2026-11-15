@@ -1,0 +1,43 @@
+name: Visualization template and bundled plugin
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: ['11', '25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+      - name: Build the SDK without changing legacy Java contracts
+        run: ./mvnw -B clean package
+      - name: Verify reviewed browser asset hashes
+        run: python3 scripts/update-example-manifest.py
+      - name: Build and test the uploadable plugin against the published ABI
+        run: ./mvnw -B -f examples/bundled-svg/pom.xml clean package
+      - name: Check the uploadable JAR contains resources and no provided classes
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import zipfile
+          path = 'examples/bundled-svg/target/openlap-bundled-svg-example-1.0.0.jar'
+          with zipfile.ZipFile(path) as jar:
+              names = jar.namelist()
+              assert not any(name.startswith(('com/openlap/', 'com/fasterxml/')) for name in names)
+              manifest = json.loads(jar.read('META-INF/openlap/visualization.json'))
+              for asset in manifest['assets']:
+                  assert hashlib.sha256(jar.read(asset['path'])).hexdigest() == asset['sha256']
+          print('Packaged plugin resources and provided-class boundaries verified.')
+          PY
