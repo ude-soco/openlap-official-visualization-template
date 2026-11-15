@@ -20,6 +20,11 @@ public class VisualizationManifestTest {
             Assert.assertFalse(schema.path("additionalProperties").booleanValue());
             Assert.assertTrue(schema.path("$defs").has("asset"));
             Assert.assertTrue(schema.path("$defs").has("customization"));
+            Assert.assertEquals(64, schema.path("properties").path("assets").path("maxItems").intValue());
+            Assert.assertEquals(16, schema.path("properties").path("runtimes").path("maxItems").intValue());
+            Assert.assertEquals(64, schema.path("$defs").path("runtime").path("properties").path("assets").path("maxItems").intValue());
+            Assert.assertEquals(240, schema.path("$defs").path("asset").path("properties").path("path").path("maxLength").intValue());
+            Assert.assertEquals(100, schema.path("$defs").path("id").path("maxLength").intValue());
         }
     }
 }

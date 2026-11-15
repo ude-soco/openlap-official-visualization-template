@@ -53,7 +53,9 @@ A library's charts normally share one runtime. Declare additional runtimes only
 when the charts need different browser dependencies. Runtime versions are chosen
 and packaged during development; selecting a chart loads the declared assets,
 not a floating latest release. Dependencies and their license notices belong in
-the plugin distribution. The example runtime is original project code and does
+the plugin distribution. Put redistribution notices under `META-INF/licenses/`
+so they remain in the distributed JAR; the manifest lists browser assets rather
+than adding a separate license field. The example runtime is original project code and does
 not redistribute a third-party chart library.
 
 Customization fields support `text`, `number`, `boolean`, `select` and `color`.
@@ -73,6 +75,13 @@ use `.css`, and icons use `.png` or `.svg`. Every declared byte sequence must ma
 its checksum. OpenLAP performs semantic and bounded archive validation in addition
 to the schema's structural checks; schema validation alone does not establish
 trust in plugin code.
+
+Version 1 accepts at most 64 assets, 16 runtimes, 64 asset references per runtime
+and 64 chart types. Identifiers are limited to 100 characters and asset paths to
+240 characters. Each chart must include a `customizations` array, which may be
+empty. The backend also limits the manifest to 128 KiB, each browser asset to
+8 MiB and the combined declared assets to 32 MiB. These limits are checked during
+upload before the plugin can be activated.
 
 The backend serves only declared assets from the approved immutable plugin
 artifact. Browser asset URLs are provided by OpenLAP. Plugins never need storage
