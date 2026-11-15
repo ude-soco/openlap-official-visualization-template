@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "pluginId": "org.openlap.examples.svg",
+  "pluginVersion": "1.0.0",
+  "assets": [
+    {
+      "id": "svg-style",
+      "path": "web/svg-example-1.0.0.css",
+      "kind": "style",
+      "sha256": "343bc83f258d96bbc4fb7ef50a0515a0e7cd797ac6e6e1d9ac2bf2479f3bb943"
+    },
+    {
+      "id": "svg-script",
+      "path": "web/svg-example-1.0.0.js",
+      "kind": "script",
+      "sha256": "36899a7d4b787937edb7044b67c5d3acdc27a4c65537848ff4098886033cf45d"
+    },
+    {
+      "id": "chart-icon",
+      "path": "web/chart-icon.svg",
+      "kind": "image",
+      "sha256": "01621765f82562887f1d47ccf702d75c6f8ae37841f5d85b4dd462413a790b2f"
+    }
+  ],
+  "runtimes": [
+    {
+      "id": "svg-example",
+      "version": "1.0.0",
+      "assets": [
+        "svg-style",
+        "svg-script"
+      ]
+    }
+  ],
+  "charts": [
+    {
+      "id": "bar",
+      "implementingClass": "org.openlap.examples.svg.BarChart",
+      "runtimeId": "svg-example",
+      "description": "Compare values across categories.",
+      "iconAssetId": "chart-icon",
+      "inputRoles": {
+        "category": "category"
+      },
+      "customizations": [
+        {
+          "id": "chartTitle",
+          "label": "Chart title",
+          "type": "text",
+          "defaultValue": "",
+          "group": "elements",
+          "help": "A short title displayed above the chart."
+        },
+        {
+          "id": "showValues",
+          "label": "Show values",
+          "type": "boolean",
+          "defaultValue": true,
+          "group": "elements"
+        },
+        {
+          "id": "valueLabelPosition",
+          "label": "Value label position",
+          "type": "select",
+          "defaultValue": "above",
+          "options": [
+            {
+              "value": "above",
+              "label": "Above points"
+            },
+            {
+              "value": "below",
+              "label": "Below points"
+            }
+          ],
+          "group": "elements",
+          "visibleWhen": {
+            "id": "showValues",
+            "equals": true
+          }
+        },
+        {
+          "id": "seriesColor",
+          "label": "Series color",
+          "type": "color",
+          "defaultValue": "#1976d2",
+          "group": "styles"
+        },
+        {
+          "id": "height",
+          "label": "Chart height",
+          "type": "number",
+          "defaultValue": 420,
+          "min": 260,
+          "max": 800,
+          "step": 20,
+          "group": "styles",
+          "help": "Height of the SVG view box in pixels."
+        },
+        {
+          "id": "showGrid",
+          "label": "Show grid lines",
+          "type": "boolean",
+          "defaultValue": true,
+          "group": "styles"
+        }
+      ]
+    },
+    {
+      "id": "line",
+      "implementingClass": "org.openlap.examples.svg.LineChart",
+      "runtimeId": "svg-example",
+      "description": "Show values in the order of the mapped categories.",
+      "iconAssetId": "chart-icon",
+      "inputRoles": {
+        "category": "category"
+      },
+      "customizations": [
+        {
+          "id": "chartTitle",
+          "label": "Chart title",
+          "type": "text",
+          "defaultValue": "",
+          "group": "elements",
+          "help": "A short title displayed above the chart."
+        },
+        {
+          "id": "showValues",
+          "label": "Show values",
+          "type": "boolean",
+          "defaultValue": true,
+          "group": "elements"
+        },
+        {
+          "id": "valueLabelPosition",
+          "label": "Value label position",
+          "type": "select",
+          "defaultValue": "above",
+          "options": [
+            {
+              "value": "above",
+              "label": "Above points"
+            },
+            {
+              "value": "below",
+              "label": "Below points"
+            }
+          ],
+          "group": "elements",
+          "visibleWhen": {
+            "id": "showValues",
+            "equals": true
+          }
+        },
+        {
+          "id": "seriesColor",
+          "label": "Series color",
+          "type": "color",
+          "defaultValue": "#1976d2",
+          "group": "styles"
+        },
+        {
+          "id": "height",
+          "label": "Chart height",
+          "type": "number",
+          "defaultValue": 420,
+          "min": 260,
+          "max": 800,
+          "step": 20,
+          "group": "styles",
+          "help": "Height of the SVG view box in pixels."
+        },
+        {
+          "id": "showGrid",
+          "label": "Show grid lines",
+          "type": "boolean",
+          "defaultValue": true,
+          "group": "styles"
+        }
+      ]
+    }
+  ]
+}

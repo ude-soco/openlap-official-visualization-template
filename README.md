@@ -1,5 +1,105 @@
 # OpenLAP Visualization Template
 
+Build visualization plugins that OpenLAP can install as JAR files. The template
+provides typed chart inputs, data transformation and HTML/JavaScript generation.
+The optional version 1 manifest adds bundled browser dependencies and reusable
+customization controls without changing existing generator methods.
+
+## Build and try the bundled example
+
+Use a JDK supported by your OpenLAP installation (JDK 11 or newer can build this
+project; the SDK and example retain Java 8 bytecode compatibility).
+
+```sh
+./mvnw clean package
+./mvnw -f examples/bundled-svg/pom.xml clean package
+```
+
+Upload `examples/bundled-svg/target/openlap-bundled-svg-example-1.0.0.jar` through
+OpenLAP's visualization-library administration flow. Review and activate it on a
+version of OpenLAP that supports the visualization manifest. It provides Bar and
+Line charts with one shared SVG runtime, a packaged icon and six customization
+controls. It needs no browser CDN, frontend source changes or scripts on the
+embedding platform. See the [example guide](examples/bundled-svg/README.md).
+
+The example compiles against the published template **1.1.0** and dataset
+**1.0.0**, matching the existing backend plugin ABI. Both are `provided`
+dependencies: they must not be copied or shaded into the uploaded JAR. The SDK
+checkout itself uses the newer dataset dependency declared in its own POM; a
+plugin's provided dependencies should match the target OpenLAP installation.
+
+## Browser runtime and customization contract
+
+New self-contained plugins include this resource:
+
+```text
+META-INF/openlap/visualization.json
+web/…                         JavaScript, CSS and optional PNG/SVG icons
+```
+
+The SDK packages a [JSON Schema](src/main/resources/com/openlap/template/visualization-manifest-v1.schema.json)
+for editor assistance. `VisualizationManifest` exposes the resource path and
+schema version without adding methods to existing abstract classes.
+
+| Manifest field | Purpose |
+| --- | --- |
+| `schemaVersion`, `pluginId`, `pluginVersion` | Identify the contract and plugin build. |
+| `assets` | Declare each resource's ID, JAR path, kind and SHA-256 checksum. |
+| `runtimes` | Select an exact runtime version and its ordered asset IDs. |
+| `charts` | Connect each chart ID and Java implementation to its runtime, input roles, description and icon. |
+| `customizations` | Describe controls, defaults, validation, groups and optional visibility conditions. |
+
+A library's charts normally share one runtime. Declare additional runtimes only
+when the charts need different browser dependencies. Runtime versions are chosen
+and packaged during development; selecting a chart loads the declared assets,
+not a floating latest release. Dependencies and their license notices belong in
+the plugin distribution. Put redistribution notices under `META-INF/licenses/`
+so they remain in the distributed JAR; the manifest lists browser assets rather
+than adding a separate license field. The example runtime is original project code and does
+not redistribute a third-party chart library.
+
+Customization fields support `text`, `number`, `boolean`, `select` and `color`.
+Each has a stable `id`, a `label` and an `elements`, `styles` or `filters` group.
+Use `defaultValue`, select `options`, numeric `min`/`max`/`step`, and `help` as
+needed. `visibleWhen: {"id": "showValues", "equals": true}` conditionally displays
+a dependent control. OpenLAP presents these with its native controls; the selected
+values reach the generator through its existing `additionalParams` map. Validate
+values in the generator too, and preserve parameter IDs across compatible plugin
+versions.
+
+Every chart's `implementingClass` must match a discovered concrete generator.
+Asset IDs, runtime IDs, chart IDs and customization IDs must be unique in their
+scope. Runtime and icon references must resolve to declared assets. Paths must
+stay below `web/` with no traversal, URLs or backslashes. Scripts use `.js`, styles
+use `.css`, and icons use `.png` or `.svg`. Every declared byte sequence must match
+its checksum. OpenLAP performs semantic and bounded archive validation in addition
+to the schema's structural checks; schema validation alone does not establish
+trust in plugin code.
+
+Version 1 accepts at most 64 assets, 16 runtimes, 64 asset references per runtime
+and 64 chart types. Identifiers are limited to 100 characters; `constructor`,
+`prototype` and `__proto__` are reserved. Asset paths are limited to 240
+characters. Each chart must include a `customizations` array, which may be
+empty. The backend also limits the manifest to 128 KiB, each browser asset to
+8 MiB and the combined declared assets to 32 MiB. These limits are checked during
+upload before the plugin can be activated.
+
+The backend serves only declared assets from the approved immutable plugin
+artifact. Browser asset URLs are provided by OpenLAP. Plugins never need storage
+credentials or hardcoded deployment URLs. Rendering loads dependencies before
+executing chart code; external platforms only paste the generated iframe.
+
+`visualizationLibraryScript()` remains part of the legacy Java API. For a
+manifest-based plugin, return an empty string as in the example. Keep dependency
+loading separate from generated chart fragments. Older OpenLAP versions do not
+understand the manifest and still require their legacy dependency setup.
+
+## Legacy generator guide
+
+The remaining tutorial describes the existing Java generator API. Its historical
+CDN examples are for legacy integrations; use the bundled example above for new
+self-contained plugins.
+
 ## INTRODUCTION
 
 The following video gives the introduction to the OpenLAP followed by the tutorial to add new visualization technique to
@@ -181,7 +281,7 @@ The following steps must be followed by the developer to implement a new Analyti
 
 7. Implement the remaining abstract methods of the `VisualizationCodeGenerator` class.
 
-8. Pack the project into a fat jar file.
+8. Package the plugin JAR with OpenLAP dependencies marked `provided`.
 
 9. Upload the JAR file using the OpenLAP administration panel.
 
@@ -191,8 +291,7 @@ These steps are explained in more details with concrete examples in the followin
 
 To develop a new analytics method, you need to install the following softwares.
 
-* Java Development Kit (JDK) 7+: Ensure that you have Java Development Kit version 7 or above installed on your system (
-  Amazon corretto 11 maximum in current OpenLap version).
+* A supported Java Development Kit. This SDK emits Java 8 bytecode; use JDK 11 or newer for the current Maven build. Match your target OpenLAP installation when choosing provided plugin dependencies.
 * Any Integrated Development Environment (IDE) for Java development, such
   as, [Intellij IDEA](https://www.jetbrains.com/idea/download), [NetBeans](https://netbeans.org/downloads/), [Eclipse](https://eclipse.org/downloads/),
   etc.
@@ -203,16 +302,9 @@ In the following steps we are going to use the Intellij IDEA for developing the 
 
 * Create a new project. `File -> New -> Project`
 * Select `Maven` from the left and click `Next`.
-* Enter the GroupId, ArtifactId and Version etc. To facilitate the retrieval of a recently implemented visualization
-  method from the fat JAR file, it is essential to set its GroupId correctly. Otherwise, identifying the newly added
-  visualization method class becomes challenging due to the presence of numerous class files from the dependencies
-  within fat the JAR file. The GroupId needs to be set as "openlap.visualizer" without the quotes. Click then create.
+* Enter a GroupId, ArtifactId and version for your plugin. Use unique Java package names for its implementation classes; OpenLAP discovers chart classes by the template contract rather than requiring a particular Maven GroupId.
 
-* Add JitPack repository and include the dependencies needed to access the abstract class VisualizationCodeGenerator and
-  DataTransformer interface into the 'pom.xml' file. Obtain the latest version of the dependency XML from the specified
-  source: [visualization technique source](https://jitpack.io/#OpenlapDependencies/open-lap-visualization-technique-template-master)
-  and [data exchange source](https://jitpack.io/#OpenlapDependencies/open-lap-data-exchange-formats-master) website and
-  take the dependency for the maven section. Afterwards reload the maven project.
+* Add the JitPack repository and provided dependencies for the OpenLAP installation you target. The example below matches the published ABI used by the existing backend. Refer to the [visualization template](https://github.com/ude-soco/openlap-official-visualization-template) and [dataset formats](https://github.com/ude-soco/openlap-official-data-exchange-formats) repositories when qualifying another target version.
 
 Maven:
 
@@ -227,17 +319,17 @@ Maven:
 
 <dependencies>
 <dependency>
-    <groupId>com.github.OpenlapDependencies</groupId>
-    <artifactId>
-        open-lap-visualization-technique-template-master
-    </artifactId>
-    <version>version1</version>
+    <groupId>com.github.ude-soco</groupId>
+    <artifactId>openlap-official-visualization-template</artifactId>
+    <version>1.1.0</version>
+    <scope>provided</scope>
 </dependency>
 
 <dependency>
-    <groupId>com.github.OpenlapDependencies</groupId>
-    <artifactId>open-lap-data-exchange-formats-master</artifactId>
-    <version>version1</version>
+    <groupId>com.github.ude-soco</groupId>
+    <artifactId>openlap-official-data-exchange-formats</artifactId>
+    <version>1.0.0</version>
+    <scope>provided</scope>
 </dependency>
 </dependencies>
 ```
@@ -552,45 +644,21 @@ The example escapes string values before placing them into JavaScript string lit
 `height` are JavaScript numeric fragments; validate or parse them as numbers before concatenating them in production
 visualization code.
 
-#### Step 8. Pack the project into a fat jar file
+#### Step 8. Package the plugin JAR
 
-To create a comprehensive JAR file for the project, it is necessary to package it as a fat jar file. To guide Maven in
-producing a fat jar from the project, it is essential to integrate a Fat JAR build configuration into the pom.xml file
-of the project. The provided configuration should be added to the pom.xml file as outlined below.
+Mark OpenLAP template and dataset dependencies as `provided`. Package your own
+classes, the visualization manifest and browser assets using the standard Maven
+JAR lifecycle:
 
-```java
-<build>
-    <plugins>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <version>3.1.1</version>
-
-            <configuration>
-                <descriptorRefs>
-                    <descriptorRef>
-jar-with-dependencies
-		</descriptorRef>
-                </descriptorRefs>
-            </configuration>
-
-            <executions>
-                <execution>
-                    <id>make-assembly</id>
-                    <phase>package</phase>
-                    <goals>
-                        <goal>single</goal>
-                    </goals>
-                </execution>
-            </executions>
-        </plugin>
-    </plugins>
-</build>
+```sh
+mvn clean package
 ```
 
-Following this, the following command in the terminal of IntelliJ needs to be run: *mvn clean package*. Maven will then
-generate a Fat JAR in the *target* directory. The fat jar file will have the following format
-*my-project-name-jar-with-dependencies.jar*.
+The resulting `target/<artifactId>-<version>.jar` is uploadable. Do not assemble
+OpenLAP SDK or dataset classes into it; the backend provides those classes and
+rejects shadow copies. If your generator needs additional Java libraries, package
+only those qualified dependencies without duplicating the provided OpenLAP APIs.
+The [bundled example POM](examples/bundled-svg/pom.xml) is a complete working build.
 
 #### Step 9. Upload the JAR file using the OpenLAP administration panel
 
