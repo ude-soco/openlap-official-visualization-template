@@ -25,6 +25,11 @@ public class VisualizationManifestTest {
             Assert.assertEquals(64, schema.path("$defs").path("runtime").path("properties").path("assets").path("maxItems").intValue());
             Assert.assertEquals(240, schema.path("$defs").path("asset").path("properties").path("path").path("maxLength").intValue());
             Assert.assertEquals(100, schema.path("$defs").path("id").path("maxLength").intValue());
+            JsonNode blocked = schema.path("$defs").path("id").path("not").path("enum");
+            Assert.assertEquals(3, blocked.size());
+            Assert.assertEquals("constructor", blocked.get(0).textValue());
+            Assert.assertEquals("prototype", blocked.get(1).textValue());
+            Assert.assertEquals("__proto__", blocked.get(2).textValue());
         }
     }
 }

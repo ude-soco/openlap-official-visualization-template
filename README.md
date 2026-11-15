@@ -77,8 +77,9 @@ to the schema's structural checks; schema validation alone does not establish
 trust in plugin code.
 
 Version 1 accepts at most 64 assets, 16 runtimes, 64 asset references per runtime
-and 64 chart types. Identifiers are limited to 100 characters and asset paths to
-240 characters. Each chart must include a `customizations` array, which may be
+and 64 chart types. Identifiers are limited to 100 characters; `constructor`,
+`prototype` and `__proto__` are reserved. Asset paths are limited to 240
+characters. Each chart must include a `customizations` array, which may be
 empty. The backend also limits the manifest to 128 KiB, each browser asset to
 8 MiB and the combined declared assets to 32 MiB. These limits are checked during
 upload before the plugin can be activated.
