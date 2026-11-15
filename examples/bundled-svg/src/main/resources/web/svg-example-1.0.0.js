@@ -1,18 +1,18 @@
 (function () {
   "use strict";
   const namespace = "http://www.w3.org/2000/svg";
+  const observers = new WeakMap();
   function node(tag, attributes, text) {
     const element = document.createElementNS(namespace, tag);
     Object.entries(attributes || {}).forEach(([key, value]) => element.setAttribute(key, String(value)));
     if (text !== undefined) element.textContent = String(text);
     return element;
   }
-  function render(container, points, options, kind) {
+  function draw(container, points, options, kind, width) {
     if (!container || !Array.isArray(points)) throw new Error("A chart container and points are required.");
     if (!points.every(point => typeof point.label === "string" && Number.isFinite(point.value))) {
       throw new Error("Every chart point needs a label and finite numeric value.");
     }
-    const width = 720;
     const height = options.height || 420;
     const margin = { top: options.chartTitle ? 64 : 30, right: 24, bottom: 104, left: 64 };
     const plotWidth = width - margin.left - margin.right;
@@ -26,7 +26,11 @@
     const svg = node("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": options.chartTitle || `${kind} chart` });
     svg.appendChild(node("title", {}, options.chartTitle || `${kind} chart`));
     svg.appendChild(node("desc", {}, points.map(point => `${point.label}: ${point.value}`).join("; ")));
-    if (options.chartTitle) svg.appendChild(node("text", { x: width / 2, y: 28, "text-anchor": "middle", class: "chart-title" }, options.chartTitle));
+    if (options.chartTitle) {
+      const limit = Math.max(12, Math.floor((width - 32) / 11));
+      const title = options.chartTitle.length > limit ? `${options.chartTitle.slice(0, limit - 1)}…` : options.chartTitle;
+      svg.appendChild(node("text", { x: width / 2, y: 28, "text-anchor": "middle", class: "chart-title" }, title));
+    }
     if (!points.length) svg.appendChild(node("text", { x: width / 2, y: height / 2, "text-anchor": "middle" }, "No data to display"));
     if (options.showGrid) {
       for (let index = 0; index <= 4; index++) {
@@ -50,7 +54,8 @@
       mark.setAttribute("aria-label", `${point.label}: ${point.value}`);
       mark.appendChild(node("title", {}, `${point.label}: ${point.value}`));
       svg.appendChild(mark);
-      const label = point.label.length > 28 ? `${point.label.slice(0, 27)}…` : point.label;
+      const labelLimit = width < 500 ? 18 : 28;
+      const label = point.label.length > labelLimit ? `${point.label.slice(0, labelLimit - 1)}…` : point.label;
       const category = node("text", { transform: `translate(${x(index)},${height - margin.bottom + 20}) rotate(-35)`, "text-anchor": "end", class: "axis-label" }, label);
       category.appendChild(node("title", {}, point.label));
       svg.appendChild(category);
@@ -61,5 +66,29 @@
     });
     container.replaceChildren(svg);
   }
-  window.OpenLAPExample = Object.freeze({ version: "1.0.0", render });
+  function destroy(container) {
+    observers.get(container)?.disconnect();
+    observers.delete(container);
+  }
+  function render(container, points, options, kind) {
+    destroy(container);
+    let width = Math.max(320, container?.clientWidth || 720);
+    draw(container, points, options, kind, width);
+    if (typeof ResizeObserver !== "undefined") {
+      let frame;
+      const observer = new ResizeObserver(() => {
+        const nextWidth = Math.max(320, container.clientWidth || 720);
+        if (Math.abs(nextWidth - width) < 1) return;
+        width = nextWidth;
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => draw(container, points, options, kind, width));
+      });
+      observer.observe(container);
+      observers.set(container, { disconnect() {
+        observer.disconnect();
+        cancelAnimationFrame(frame);
+      } });
+    }
+  }
+  window.OpenLAPExample = Object.freeze({ version: "1.0.0", render, destroy });
 }());
